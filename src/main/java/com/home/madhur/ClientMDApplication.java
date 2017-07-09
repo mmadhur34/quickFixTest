@@ -91,9 +91,6 @@ public class ClientMDApplication implements Application {
         mdReq.set(new MDReqID("MDReq_"+symbol));
         mdReq.set(new SubscriptionRequestType(SubscriptionRequestType.SNAPSHOT_PLUS_UPDATES));
         mdReq.set(new MarketDepth(5));
-        MarketDataRequest.NoRelatedSym relatedSymbols = new
-                MarketDataRequest.NoRelatedSym();
-        relatedSymbols.set(new Symbol(symbol));
 
         MarketDataRequest.NoMDEntryTypes mdEntryTypes = new
                 MarketDataRequest.NoMDEntryTypes();
@@ -102,6 +99,9 @@ public class ClientMDApplication implements Application {
         mdEntryTypes.set(new MDEntryType('1')); // Offer
 
         mdReq.addGroup(mdEntryTypes);
+        MarketDataRequest.NoRelatedSym relatedSymbols = new
+                MarketDataRequest.NoRelatedSym();
+        relatedSymbols.set(new Symbol(symbol));
         mdReq.addGroup(relatedSymbols);
         return mdReq;
     }
