@@ -54,7 +54,7 @@ public class ServerMDApplication implements Application {
 
 
     public void fromApp(Message message, SessionID sessionID) throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
-        String msgType = message.getHeader().getString(55);
+        String msgType = message.getHeader().getString(35);
         if(message instanceof MarketDataRequest){
             MarketDataRequest mdr = (MarketDataRequest)message;
             NoRelatedSym noRelatedSym = new NoRelatedSym();
@@ -91,25 +91,37 @@ public class ServerMDApplication implements Application {
 
     static class MDPublisher implements Runnable{
         public void run(){
-            MarketDataSnapshotFullRefresh snapshotFullRefresh = new MarketDataSnapshotFullRefresh();
-            MarketDataSnapshotFullRefresh.NoMDEntries mdEntries = new MarketDataSnapshotFullRefresh.NoMDEntries();
-            while (true){
-                for(String symbol:instrument){
-                    try {
-                        snapshotFullRefresh.setString(55,symbol);
-                        mdEntries.set(new MDEntryPx(100.00));
-                        mdEntries.set(new MDEntrySize(5));
-                        mdEntries.set(new MDEntryType(MDEntryType.BID));
-                        snapshotFullRefresh.addGroup(mdEntries);
-                        mdEntries.set(new MDEntryPx(101.00));
-                        mdEntries.set(new MDEntrySize(6));
-                        mdEntries.set(new MDEntryType(MDEntryType.OFFER));
-                        snapshotFullRefresh.addGroup(mdEntries);
-                        Session.sendToTarget(snapshotFullRefresh,sessionID);
-                    } catch (SessionNotFound sessionNotFound) {
+            boolean increase = true;
+            double px1= 100.00; double px2=101.00;
+            int size1=5; int size2=6;
+            try{
+                while (true){
+                    for(String symbol:instrument){
+                        try {
+                            MarketDataSnapshotFullRefresh snapshotFullRefresh = new MarketDataSnapshotFullRefresh();
+                            MarketDataSnapshotFullRefresh.NoMDEntries mdEntries = new MarketDataSnapshotFullRefresh.NoMDEntries();
+                            snapshotFullRefresh.setString(55,symbol);
+                            mdEntries.set(new MDEntryPx(increase?px1+1.0:px1-1.0));
+                            mdEntries.set(new MDEntrySize(increase?size1+1:size1-1));
+                            mdEntries.set(new MDEntryType(MDEntryType.BID));
+                            snapshotFullRefresh.addGroup(mdEntries);
+                            mdEntries.set(new MDEntryPx(increase?px2+1:px2-1));
+                            mdEntries.set(new MDEntrySize(increase?size2+1:size2-1));
+                            mdEntries.set(new MDEntryType(MDEntryType.OFFER));
+                            snapshotFullRefresh.addGroup(mdEntries);
+                            Session.sendToTarget(snapshotFullRefresh,sessionID);
+
+                        } catch (SessionNotFound sessionNotFound) {
+                        }
+
                     }
+                    increase = !increase;
+//                    Thread.sleep(10);
                 }
+            }catch (Exception e){
+                System.out.println("Thread interrupted "+e);
             }
+
         }
     }
 }
