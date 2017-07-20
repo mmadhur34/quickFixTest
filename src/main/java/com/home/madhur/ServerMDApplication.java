@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by madhur on 2/19/2017.
@@ -22,8 +23,9 @@ public class ServerMDApplication implements Application {
 
     static Logger log  = LoggerFactory.getLogger("ServerApplication");
     static List<String> instrument = new ArrayList<String>();
+    public static AtomicInteger subscriptionCount = new AtomicInteger(0);
     MDPublisher publisher = new MDPublisher();
-    Thread mdt = new Thread(publisher);
+    Thread mdt = new Thread(publisher,"MD Publisher");
 
     public void onCreate(SessionID sessionID) {
     }
@@ -64,7 +66,10 @@ public class ServerMDApplication implements Application {
                 mdr.getGroup(1,symGrp);
                 Symbol symbol = symGrp.getSymbol();
                 System.out.println("received subscri[ption request for "+symbol.getValue());
-                instrument.add(symbol.getValue());
+                synchronized (instrument){
+                    instrument.add(symbol.getValue());
+                    subscriptionCount.incrementAndGet();
+                }
             }
             if(!mdt.isAlive()){
                 mdt.start();
@@ -96,6 +101,8 @@ public class ServerMDApplication implements Application {
             int size1=5; int size2=6;
             try{
                 while (true){
+                    if(subscriptionCount.get()!=6)
+                        Thread.sleep(100);
                     for(String symbol:instrument){
                         try {
                             MarketDataSnapshotFullRefresh snapshotFullRefresh = new MarketDataSnapshotFullRefresh();
@@ -119,7 +126,7 @@ public class ServerMDApplication implements Application {
 //                    Thread.sleep(10);
                 }
             }catch (Exception e){
-                System.out.println("Thread interrupted "+e);
+                e.printStackTrace();
             }
 
         }
